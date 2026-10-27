@@ -1,0 +1,31 @@
+Érvényesítésben legyen üres sztring is. És legyen más is beírható (?)
+
+Névlista táblázatban lehetne egy tartós távollét oszlop ahol pl. Dömének megadhatjuk a CSED-et
+
+"Csak munkanap": egyelőre vegyük le.
+
+Be nem fejezett lapokra tegyen üres oszlopokat (Olga után)
+
+Láblécre: oldalszámozás
+
+Fejlécre: Klebelsberg Központ - Személyügyi Osztály
+
+Accent color megadható legyen a GUI-n.
+
+Accent color a fejlécre és a munkaszüneti napokra.
+
+"2026. OKTÓBER HÓ" fejléc minden oldalra.
+
+Nyomtatási terület, A3 fekvő és oldaltörések!
+
+
+====== EZ EDDIG A JELENLÉTI. =========
+
+
+Választható másik üzemmód, ahol minden név csak 2 oszlopból áll:
+- időpontok
+- ellenőrzés
+
+Az ellenőrzésbe képlettel írjunk üzenetet.
+
+Második munkalap: statisztika vezetőkenk...
