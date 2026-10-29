@@ -1,22 +1,30 @@
-Érvényesítésben legyen üres sztring is. És legyen más is beírható (?)
+    Érvényesítésben legyen üres sztring is. És legyen más is beírható (?)
 
-Névlista táblázatban lehetne egy tartós távollét oszlop ahol pl. Dömének megadhatjuk a CSED-et
+    Névlista táblázatban lehetne egy tartós távollét oszlop ahol pl. Dömének megadhatjuk a CSED-et
 
-"Csak munkanap": egyelőre vegyük le.
+    "Csak munkanap": egyelőre vegyük le.
 
-Be nem fejezett lapokra tegyen üres oszlopokat (Olga után)
+    Be nem fejezett lapokra tegyen üres oszlopokat (Olga után)
+
+    Fejlécre: Klebelsberg Központ - Személyügyi Osztály
+
+    Accent color a fejlécre és a munkaszüneti napokra.
+
+    "2026. OKTÓBER HÓ" fejléc minden oldalra.
+
+    Nyomtatási terület, A3 fekvő és oldaltörések!
+
+    Csakhogy így túl magasak az oldalak. Kell margó állítás.
+
+    Print area mérete legyen dinamikus.
+
+    Lapvégek helye legyen dinamikus.
 
 Láblécre: oldalszámozás
 
-Fejlécre: Klebelsberg Központ - Személyügyi Osztály
-
 Accent color megadható legyen a GUI-n.
 
-Accent color a fejlécre és a munkaszüneti napokra.
-
-"2026. OKTÓBER HÓ" fejléc minden oldalra.
-
-Nyomtatási terület, A3 fekvő és oldaltörések!
+Bal keretben az A oszlop legyen kettéosztva függőlegesen. A bal oldalra kerüljön hogy hanyadika van és pont, jobbra rendezve, a jobb oldalra a hét napjának rövidített neve. Így a pontok egymás alá kerülnek.
 
 
 ====== EZ EDDIG A JELENLÉTI. =========

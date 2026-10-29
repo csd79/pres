@@ -11,7 +11,7 @@
 (setf dfsig::*independent-exe* t)
 
 (lw:deliver 'pres:start
-    "c:\\Users\\cselovszkid\\common-lisp\\pres\\pres_v0.01.exe"
+    "c:\\Users\\cselovszkid\\common-lisp\\pres\\pres_v0.02.exe"
     5
     :interface :capi
     :console :io

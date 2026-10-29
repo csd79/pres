@@ -20,23 +20,6 @@
 (defparameter *extra-workdays* '())
 
 
-#|(defparameter *extra-holidays* '("2026.01.01"
-                                 "2026.01.02"
-                                 "2026.04.03"
-                                 "2026.04.06"
-                                 "2026.05.01."
-                                 "2026.05.25"
-                                 "2026.08.20"
-                                 "2026.08.21"
-                                 "2026.10.23"
-                                 "2026.12.24"
-                                 "2026.12.25"))
-(defparameter *extra-workdays* '("2026.01.10"
-                                 "2026.08.08"
-                                 "2026.12.12"))|#
-
-
-
 (defun leap-year-p (year)
   (or (zerop (mod year 400))
       (and (zerop (mod year 4))
@@ -117,9 +100,6 @@
           collecting plist)))
 
 
-
-
-
 ;; ----------------------------------------------------------------------
 ;; Excel utils
 
@@ -137,10 +117,11 @@
 
 
 (defun set-align-grid (wsheet x1 y1 x2 y2 &key
-                                    (ha nil) (va nil) (hl nil) (vl nil) (around nil))
+                                    (ha nil) (va nil) (wrap nil wrap-provided-p) (hl nil) (vl nil) (around nil))
   (cclet* ((range (range wsheet x1 y1 x2 y2)))
     (when ha (setf (?'horizontalalignment range) (getf *alignments* ha)))
     (when va (setf (?'verticalalignment range) (getf *alignments* va)))
+    (when wrap-provided-p (setf (?'wraptext range) wrap))
     (when hl (setf (?'colorindex (?'borders range ccoffice::+xl-inside-horizontal+)) ccoffice::+rgb-black+))
     (when vl (setf (?'colorindex (?'borders range ccoffice::+xl-inside-vertical+)) ccoffice::+rgb-black+))
     (when around (!'borderaround range 1 -4138))))
@@ -212,6 +193,7 @@
     :textlen    ,+xl-validate-text-length+
     :time       ,+xl-validate-time+
     :wholenum   ,+xl-validate-whole-number+
+    :noalert    ,+xl-valid-alert-information+
     :alertinfo  ,+xl-valid-alert-information+
     :alertstop  ,+xl-valid-alert-stop+
     :alertwarn  ,+xl-valid-alert-warning+
@@ -233,7 +215,10 @@
              (alert*     (resolve-arg alert))
              (op*        (resolve-arg op)))
       (!'delete validation)
-      (!'add validation type* alert* op* form1 form2))))
+      (!'add validation type* alert* op* form1 form2)
+      (when (eq alert :noalert)
+        (setf (?'showerror validation) nil))
+      )))
 
 
 
@@ -264,6 +249,11 @@
 ;; Constructing output
 
 
+(defparameter *col-width* 3)
+(defparameter *page-width* 10)
+(defparameter *accent-color* (rgb 247 150 70))
+
+
 (defun short-weekday (weekday)
   (cdr (assoc weekday (list (cons "Hétfõ" "H") (cons "Kedd" "K")
                             (cons "Szerda" "Sze") (cons "Csütörtök" "Cs")
@@ -279,13 +269,11 @@
 
 
 (defun left-border (wsheet obj &optional (page 1))
-#|  (let* ((days (days-of-month (get-state obj :year)
-                              (get-state obj :month)
-                              :workdays-only (not (get-state obj :disp-holidays))))|#
   (let* ((days (daylist obj))
          (last-row (+ 4 (* 2 (length days))))
          (voffset  (* last-row (1- page))))
     (setf (xcell wsheet :a (+ voffset 2)) "Nap")
+    (set-font wsheet :a (+ voffset 2) :b (+ voffset 2) :bg *accent-color*)
     ;; A: dates and weekdays
     (loop for plist in days
           for r from (+ voffset 5) by 2
@@ -297,14 +285,32 @@
           (setf (xcell wsheet :b r) (if (oddp r) "Érkezés" "Távozás")))
     ;; Styling
     (set-align-grid wsheet :a (+ voffset 2) :b (+ voffset last-row) :ha :center :va :center :hl t :vl t :around t)
-    (set-font wsheet :a (+ voffset 2) :a (+ voffset last-row) :bold t :color (rgb 255 0 255) :name "Times New Roman")
-    (set-font wsheet :b (+ voffset 2) :b (+ voffset last-row) :size 7 :bg (rgb 200 200 150))
+    (set-font wsheet :a (+ voffset 2) :a (+ voffset last-row) :bold t)
+    (set-font wsheet :b (+ voffset 2) :b (+ voffset last-row) :size 7)
     (loop for r from (+ voffset 3) below (+ voffset last-row) by 2 doing
           (merge-range wsheet :a r :a (1+ r)))
     (merge-range wsheet :a (+ voffset 2) :a (+ voffset 4))
     (merge-range wsheet :b (+ voffset 2) :b (+ voffset 4))
     (set-col-widths wsheet :a 9.14 5.14)))
-  
+
+
+(defun page-header (wsheet obj &optional (page 1))
+  (let* ((year     (get-state obj :year))
+         (month/   (get-state obj :month))
+         (month    (nth (1- month/) '("Január" "Február" "Március" "Április" "Május" "Június"
+                                      "Július" "Augusztus" "Szeptember" "Október" "November" "December")))
+         (daycount (length (daylist obj)))
+         (y        (+ (* (1- page) (+ (* daycount 2) 4)) 2))
+         (x1       3)
+         (x2       (+ 3 (* *page-width* *col-width*) -1)))
+    (setf (xcell wsheet x1 y) (string-upcase (format nil "~a. ~a hó" year month)))
+    (set-font wsheet x1 y x2 y :bold t :bg *accent-color*)
+    (setf (xcell wsheet (- x1 2) (1- y)) (format nil "    Klebelsberg Központ - ~a" (get-state obj :unit)))
+    (set-font wsheet (- x1 2) (1- y) (- x1 2) (1- y) :bold t :size 12)
+;    (merge-range wsheet x1 y x2 y)
+    (set-align-grid wsheet x1 y x2 y :ha :cacross :va :center :hl nil :vl nil :around t)
+    ))        
+
 
 (defun name-header (wsheet obj name pos &optional (page 1))
   (let* ((last-row (+ 4 (* 2 (length (daylist obj)))))
@@ -313,16 +319,16 @@
     (setf (xcell wsheet hoffset voffset) name)
     (setf (xrange wsheet hoffset (1+ voffset) (+ hoffset 2) (1+ voffset))
           #2A(("Óra, perc" "Távollét oka" "Aláírás")))
+#|    (set-align-grid wsheet hoffset voffset (+ hoffset 2) voffset
+                    :ha :center :va :center :hl t :vl t :around t)|#
     (set-align-grid wsheet hoffset voffset (+ hoffset 2) voffset
-                    :ha :center :va :center :hl t :vl t :around t)
+                    :ha :cacross :va :center :wrap t :hl t :vl t :around t)
     (set-align-grid wsheet hoffset (1+ voffset) (+ hoffset 2) (1+ voffset)
                     :ha :center :va :center :hl t :vl t :around t)
-    (set-font wsheet hoffset voffset (+ hoffset 2) voffset :bold t :color (rgb 10 20 30) :bg (rgb 250 240 230))
-    (set-font wsheet hoffset (1+ voffset) (+ hoffset 2) (1+ voffset) :size 7 :bg (rgb 250 240 230))
-    (merge-range wsheet hoffset voffset (+ hoffset 2) voffset)
+    (set-font wsheet hoffset voffset (+ hoffset 2) voffset :bold t)
+    (set-font wsheet hoffset (1+ voffset) (+ hoffset 2) (1+ voffset) :size 7)
+;    (merge-range wsheet hoffset voffset (+ hoffset 2) voffset)
     (set-col-widths wsheet hoffset 6.86 6.57 9.00)))
-
- xauniques ((obj xarray) column-designator &key (test #'equalp)
 
 
 (defun name-column (wsheet obj name pos &optional (page 1))
@@ -331,70 +337,188 @@
          (voffset  (+ 5 (* last-row (1- page))))
          (hoffset  (+ 3 (* (1- pos) 3)))
          (row      (select-row-from obj :namelist #'(lambda (row) (string= (xcref row "Név") name))))
-;         (list/    (xauniques (source-data obj :absence-types) "Rövidítés" :test #'string=))
          (list/    (ccoffice::xacolumn (source-data obj :absence-types) "Rövidítés"))
          (list*    (format nil "~{~a~^;~}" list/)))
-#|    (do-xarows (row r (source-data obj :absence-types))
-      (push (xcref row 0) list*))
-    (setf list* (format nil "~{~a~^;~}" (nreverse list*)))|#
-    (loop for r from voffset by 2
-          for (nil nil nil nil nil nil nil nil nil workday nil last-workday) in days
-          for arrival = (cond (last-workday (xcref row "Érkezés P"))
-                              (workday      (xcref row "Érkezés H-Cs"))
-                              (t            ""))
-          for departure = (cond (last-workday (xcref row "Távozás P"))
-                                (workday      (xcref row "Távozás H-Cs"))
+;         (list*    (format nil "~{~a~^;~}" (substitute " " :empty list/))))
+    (unless (string= name "")
+      (loop for r from voffset by 2
+            for (nil nil nil nil nil nil nil nil nil workday nil last-workday) in days
+            for arrival = (cond (last-workday (xcref row "Érkezés P"))
+                                (workday      (xcref row "Érkezés H-Cs"))
                                 (t            ""))
-          doing (setf (xrange wsheet hoffset r hoffset (1+ r))
-                      (make-array '(2 1) :initial-contents `((,arrival) (,departure)))))
+            for departure = (cond (last-workday (xcref row "Távozás P"))
+                                  (workday      (xcref row "Távozás H-Cs"))
+                                  (t            ""))
+            for perm-abs = (xcref row "Tartós távollét kód")
+            for perm-abs-provided = (not (empty-cell-p perm-abs))
+            doing
+            (setf (xrange wsheet hoffset r hoffset (1+ r))
+                  (make-array '(2 1) :initial-contents `((,arrival) (,departure))))
+            (when perm-abs-provided
+              (setf (xcell wsheet (1+ hoffset) r) perm-abs))
+            ))
     (set-numform wsheet hoffset voffset hoffset (+ voffset last-row -5) "ó:pp")
     (set-align-grid wsheet hoffset voffset (+ hoffset 2) (+ voffset last-row -5)
                     :ha :center :va :center :hl t :vl t :around t)
     (set-validation wsheet (1+ hoffset) voffset (1+ hoffset) (+ voffset last-row -6) 
-                    :list :alertstop :between list*)
+                    :list :noalert :between list*)
     (loop for r from voffset upto (+ voffset last-row -5) by 2 doing
           (merge-range wsheet (1+ hoffset) r (1+ hoffset) (1+ r)))))
 
 
+(defun daycount (obj)
+  (length (daylist obj)))
+
+(defun namelist (obj)
+  (xacolumn (source-data obj :namelist) "Név"))
+
+(defun namecount (obj)
+  (length (namelist obj)))
+
+(defun pagecount (obj)
+  (ceiling (/ (namecount obj) *page-width*)))
+
+(defun page-data-start (obj page)
+  (+ (* (1- page) (+ (daycount obj) 2) 2) 5))
+
+(defun page-data-end (obj page)
+  (- (page-data-start obj (1+ page)) 5))
+
+(defun page-last-col ()
+  (+ (* *page-width* *col-width*) 2))
+
+
+(defun accentuate-holidays (wsheet obj)
+;  (let ((pages (ceiling (/ (length (xacolumn (source-data obj :namelist) "Név")) *page-width*)))
+  (let ((pages (pagecount obj))
+        (days  (daylist obj)))
+    (loop for page from 1 upto pages doing
+          (loop for day in days
+                for workday-p = (getf day :workday)
+                for row from (page-data-start obj page) by 2 doing
+                (unless workday-p
+                  (set-font wsheet 1 row (page-last-col) (1+ row) :bg *accent-color*))))))
+
+
 (defun all-name-columns (wsheet obj)
-  (let ((names (ccoffice::xacolumn (source-data obj :namelist) "Név"))
-        (width 10)
-        (page  1))
+;  (let ((names (ccoffice::xacolumn (source-data obj :namelist) "Név"))
+  (let ((names (namelist obj))
+        (width *page-width*)
+        (page  1)
+        (pos   1))
     (left-border wsheet obj page)
-    (loop for name in names
-          for pos from 1 doing
+    (page-header wsheet obj page)
+    (loop for name in names doing
           (when (> pos width)
             (setf pos 1)
             (incf page)
-            (left-border wsheet obj page))
+            (left-border wsheet obj page)
+            (page-header wsheet obj page)
+            )
           (name-header wsheet obj name pos page)
-          (name-column wsheet obj name pos page))))
+          (name-column wsheet obj name pos page)
+          (incf pos))
+    (when (<= pos width)
+      (dotimes (i (- width pos -1))
+        (name-header wsheet obj " " pos page)
+        (name-column wsheet obj "" pos page)
+        (incf pos)))
+    ))
         
 
+#|(defun setup-page (wsheet size orientation)
+  (cclet* ((pagesetup (?'pagesetup wsheet)))
+    (setf (?'papersize pagesetup) (case size
+                                    (:a4 9)
+                                    (:a3 8)
+                                    (t   9))
+          (?'orientation pagesetup) (case orientation
+                                      (:portrail  1)
+                                      (:landscape 2)
+                                      (t          1)))))|#
+
+
+(defparameter *page*
+  '(:a4 9 :a3 8 :portrait 1 :landscape 2))
+
+
+(defun cms->pts (cm &optional (decimals 2))
+  (let ((n (expt 10 (- decimals))))
+;    (float (* (round (* cm 28.3464566929134) n) n))))
+    (float (* (round (* cm (/ 72 2.54)) n) n))))
+
+
+(defun set-page (wsheet &key (size :a4) (orientation :portrait)
+                        (mleft 2) (mtop 2) (mright 2) (mbottom 2))
+  (cclet* ((pgsetup (?'pagesetup wsheet)))
+    (setf (?'papersize    pgsetup) (getf *page* size)
+          (?'orientation  pgsetup) (getf *page* orientation)
+          (?'leftmargin   pgsetup) mleft
+          (?'topmargin    pgsetup) mtop
+          (?'rightmargin  pgsetup) mright
+          (?'bottommargin pgsetup) mbottom)))
+
+
+(defun set-page-zoom (wsheet &key (zoom nil) (fit-width nil) (fit-height  nil))
+  (cclet* ((pgsetup (?'pagesetup wsheet)))
+    (setf (?'zoom pgsetup) zoom)
+    (unless zoom
+      (if fit-width
+        (setf (?'fittopageswide pgsetup) 1
+              (?'fittopagestall pgsetup) nil)
+        (when fit-height
+          (setf (?'fittopagestall pgsetup) 1
+                (?'fittopageswide pgsetup) nil))))))
+
+
+(defun set-print-area (wsheet x1 y1 x2 y2)
+  (cclet* ((pgsetup (?'pagesetup wsheet)))
+    (setf (?'printarea pgsetup)
+          (format nil "$~a$~a:$~a$~a"
+                  (column (resolve-column-designator x1))
+                  y1
+                  (column (resolve-column-designator x2))
+                  y2))))
+
+
+(defconstant +xl-page-break-manual+ -4135)
+(defconstant +xl-page-break-none+   -4142)
+
+
+(defun page-breaks (wsheet &rest plist)
+;  (cclet* ((old-breaks (?'pagebreak (?'cells wsheet))))
+;    (setf old-breaks +xl-page-break-none+))
+  (loop for (key val) on plist by #'cddr doing
+        (case key
+          (:row (cclet* ((hbreaks (?'hpagebreaks wsheet))
+                         (above   (range wsheet :a (1+ val))))
+                  (!'add hbreaks above)))
+          (:col (cclet* ((vbreaks (?'vpagebreaks wsheet))
+                         (before  (range wsheet (1+ (column (resolve-column-designator val))) 1)))
+                  (!'add vbreaks before)))
+          (otherwise nil))))
 
 
 (defun construct (obj)
   (with-workbook (:wbook wbook :wsvars (ws1) :close nil)
-
-#|    (left-border ws1 obj)
-    (left-border ws1 obj 2)
-    (left-border ws1 obj 3)
-    (name-header ws1 obj "dr. Molnár-Rádi Andrea" 1 1)
-    (name-column ws1 obj "dr. Molnár-Rádi Andrea" 1 1)
-    (name-header ws1 obj "Gazda Mónika" 3 2)
-    (name-column ws1 obj "Gazda Mónika" 3 2)|#
     (all-name-columns ws1 obj)
-
+    (accentuate-holidays ws1 obj)
+    (set-page ws1 :size :a3 :orientation :landscape :mtop 1.5 :mbottom 1.5)
+    (set-print-area ws1 :a 1 (page-last-col) (page-data-end obj (pagecount obj)))
+    (set-page-zoom ws1 :fit-width t)
+    (let ((breakes (loop for page from 1 below (pagecount obj) collecting
+                         (list :row (page-data-end obj page)))))
+      (apply #'page-breaks ws1 (apply #'append breakes)))
     ;; Make workbook visible
-    (setf (?'visible (?'application wbook)) t)
-    ))
+    (setf (?'visible (?'application wbook)) t)))
 
 
 ;; ----------------------------------------------------------------------
 ;; Main
 
 
-(defparameter *pkeys* '(:namelist-file :disp-holidays :year :month))
+(defparameter *pkeys* '(:namelist-file :disp-holidays :year :month :unit))
+
 
 (defun start ()
   ;; App object ---------------------------------------------------------
@@ -404,6 +528,7 @@
                        :disp-holidays  t
                        :year           nil
                        :month          nil
+                       :unit           ""
                        )
               :execute-fn
               #'(lambda (obj &rest args)
@@ -468,14 +593,21 @@
                (setf (get-state obj :month) month))))
        (format nil "~a" (get-state obj :month)))
 
+      "Szervezeti egység"
+      (wg-text-input 
+       #'(lambda (text &rest rest)
+           (declare (ignore rest))
+           (setf (get-state obj :unit) text))
+       (format nil "~a" (get-state obj :unit)))
+
       
 
-      ""
+#|      ""
       (wax::wg-checkbox
        "Munkaszüneti napok"
        #'(lambda (data)
            (setf (get-state obj :disp-holidays) data))
-       (get-state obj :disp-holidays))
+       (get-state obj :disp-holidays))|#
       
       ""
       (wg-button "Generálás"

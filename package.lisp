@@ -5,5 +5,5 @@
 
 
 (defpackage #:pres
-  (:use #:cl #:utils #:ccom4 #:ccoffice #:wax)
+  (:use #:cl #:local-time #:utils #:ccom4 #:ccoffice #:wax)
   (:export #:start))
