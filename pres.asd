@@ -1,7 +1,7 @@
 (defsystem "pres"
   :description "Attendance register"
   :author      "Denes Cselovszki <denes.cselovszki@gmail.com>"
-  :version     "0.02"
+  :version     "0.03"
   :depends-on  ("local-time" "utils" "ccom4" "ccoffice" "wax")
   :serial      t
   :components  ((:file "package")

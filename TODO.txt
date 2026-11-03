@@ -1,24 +1,4 @@
-    Érvényesítésben legyen üres sztring is. És legyen más is beírható (?)
-
-    Névlista táblázatban lehetne egy tartós távollét oszlop ahol pl. Dömének megadhatjuk a CSED-et
-
-    "Csak munkanap": egyelőre vegyük le.
-
-    Be nem fejezett lapokra tegyen üres oszlopokat (Olga után)
-
-    Fejlécre: Klebelsberg Központ - Személyügyi Osztály
-
-    Accent color a fejlécre és a munkaszüneti napokra.
-
-    "2026. OKTÓBER HÓ" fejléc minden oldalra.
-
-    Nyomtatási terület, A3 fekvő és oldaltörések!
-
-    Csakhogy így túl magasak az oldalak. Kell margó állítás.
-
-    Print area mérete legyen dinamikus.
-
-    Lapvégek helye legyen dinamikus.
+JELENLÉTI ÍV  =====================================
 
 Láblécre: oldalszámozás
 
@@ -27,13 +7,56 @@ Accent color megadható legyen a GUI-n.
 Bal keretben az A oszlop legyen kettéosztva függőlegesen. A bal oldalra kerüljön hogy hanyadika van és pont, jobbra rendezve, a jobb oldalra a hét napjának rövidített neve. Így a pontok egymás alá kerülnek.
 
 
-====== EZ EDDIG A JELENLÉTI. =========
 
 
-Választható másik üzemmód, ahol minden név csak 2 oszlopból áll:
-- időpontok
-- ellenőrzés
 
-Az ellenőrzésbe képlettel írjunk üzenetet.
 
-Második munkalap: statisztika vezetőkenk...
+
+
+
+
+
+
+
+
+JELENLÉT TERVEZŐ  =================================
+
+    Távollét oka: Add comment: Mouse hover will trigger a popup help containing the codes with resolutions
+
+  Csak minden x-edik alkalommal tud lefutni...
+
+Minden sorban lennie jell érkezés-távozásnak, VAGY távollét okának.
+Ha egyik sincs = jogviszony nem él
+(Holiday napokon egyik sincs, ezt külön kell nézni)
+
+Személyi kimutatáson jelezni kell, ha kihagyás van a jogviszonyban, mert az téves kitöltésre utal
+
+És ezt a kitöltő lapon is jelezni kell a foglalkoztatottnak
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Qrva lassú és halogat.
+A formázások pontos sorrendjétől függ a stabilitás.
+
+
+
+Gyorsítások:
+  Bal border és page header: egyszer generáljuk, utána másoljuk.
+  Személy oszlopok: csak az időpontok specifikusak. Egyet generálunk és átmásoljuk mindenhova. A generáltban legyenek megjegyzések.
+    Ezután beírjuk az időpontokat és a tartós távollétet.
+	A generálás az üres sablonban és az időpont/távollét körben is legyen úgy hogy megcsinálunk egy teljes hetet, azt lemásoljuk
+	   a többi teljes hétre, és a rész heteket a hét megfelelő darabját kiválasztva másoljuk.
